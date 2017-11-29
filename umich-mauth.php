@@ -59,7 +59,7 @@ class UMichMAuth
         // default options
         self::$_options = array_merge(
             self::$_options,
-            get_site_option( 'umich_mauth_options' ) ?: array()
+            get_site_option( 'umich_mauth_options', self::$_options ) ?: array()
         );
 
         // AUTHENTICATION HOOKS
@@ -394,24 +394,6 @@ class UMichMAuth
      */
     static public function adminInit()
     {
-        if( !is_multisite() ) {
-            register_setting(
-                'umich_mauth',
-                'umich_mauth_options',
-                array(
-                    'sanitize_callback' => array( __CLASS__, 'validateOptions' )
-                )
-            );
-        }
-
-        register_setting(
-            'umich_mauth',
-            'umich_mauth_groups',
-             array(
-                'sanitize_callback' => array( __CLASS__, 'validateGroups' )
-            )
-        );
-
         if( !self::$_options['wpauth'] ) {
             add_filter( 'show_password_fields', function(){ return false; } );
             add_action( 'check_passwords', function( $userLogin, &$pass1, &$pass2 ){
@@ -440,8 +422,8 @@ class UMichMAuth
             else {
                 $_POST['umich_mauth_options'] = self::validateOptions( $_POST['umich_mauth_options'] );
 
-                update_option( 'umich_mauth_options', $_POST['umich_mauth_options'] );
-                update_option( 'umich_mauth_groups',  $_POST['umich_mauth_groups']  );
+                update_site_option( 'umich_mauth_options', $_POST['umich_mauth_options'] );
+                update_site_option( 'umich_mauth_groups',  $_POST['umich_mauth_groups']  );
             }
         }
 
@@ -452,8 +434,12 @@ class UMichMAuth
             'administrator',
             'umich_mauth',
             function(){
-                $mauthOptions = get_site_option( 'umich_mauth_options' ) ?: array();
-                $mauthGroups  = get_site_option( 'umich_mauth'. (is_multisite() ? '_'. get_current_blog_id() : null) .'_groups' ) ?: array();
+                self::$_options = array_merge(
+                    self::$_options,
+                    get_site_option( 'umich_mauth_options', self::$_options ) ?: array()
+                );
+                $mauthOptions = self::$_options;
+                $mauthGroups  = get_site_option( 'umich_mauth'. (is_multisite() ? '_'. get_current_blog_id() : null) .'_groups', array() ) ?: array();
 
                 $roles = array();
                 $roles = array(
@@ -486,7 +472,11 @@ class UMichMAuth
             'administrator',
             'umich_mauth',
             function(){
-                $mauthOptions = get_site_option( 'umich_mauth_options' ) ?: array();
+                self::$_options = array_merge(
+                    self::$_options,
+                    get_site_option( 'umich_mauth_options', self::$_options ) ?: array()
+                );
+                $mauthOptions = self::$_options;
 
                 $roles = array();
                 $roles = array(
