@@ -413,7 +413,7 @@ class UMichMAuth
     static public function adminMenu()
     {
         // validate and save options
-        if( $_POST ) {
+        if( $_POST && isset( $_POST['umich_mauth_nonce'] ) && wp_verify_nonce( $_POST['umich_mauth_nonce'], 'umich-mauth' ) ) {
             $_POST['umich_mauth_groups'] = self::validateGroups( $_POST['umich_mauth_groups'] );
 
             if( is_multisite() ) {
@@ -460,7 +460,7 @@ class UMichMAuth
     static public function networkAdminMenu()
     {
         // validate and save options
-        if( $_POST ) {
+        if( $_POST && isset( $_POST['umich_mauth_nonce'] ) && wp_verify_nonce( $_POST['umich_mauth_nonce'], 'umich-mauth' ) ) {
             $_POST['umich_mauth_options'] = self::validateOptions( $_POST['umich_mauth_options'] );
             update_site_option( 'umich_mauth_options', $_POST['umich_mauth_options'] );
         }
@@ -577,6 +577,10 @@ class UMichMAuth
             }
 
             $newGroups[ $group['group'] ] = $group;
+        }
+
+        if( !$newGroups ) {
+            return array();
         }
 
 
