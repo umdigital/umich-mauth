@@ -3,7 +3,7 @@
  * Plugin Name: University of Michigan: MAuth
  * Plugin URI: https://github.com/umdigital/umich-mauth/
  * Description: Alternate UMich website authentication method.
- * Version: 1.0
+ * Version: 1.1
  * Author: U-M: Digital
  * Author URI: http://vpcomm.umich.edu
  */
@@ -82,7 +82,7 @@ class UMichMAuth
 
         // disable WP authentication
         if( !self::$_options['wpauth'] ) {
-            remove_action( 'authenticate', 'wp_authenticate_username_password', 20 );
+            remove_filter( 'authenticate', 'wp_authenticate_username_password', 20 );
         }
         // add login button to login page if WP Auth is still enabled
         else {
@@ -365,6 +365,10 @@ class UMichMAuth
             // RETURN WP_User Object
             return $user;
         }
+        else if( isset( $_GET['loggedout'] ) ) {
+            wp_redirect( '/' );
+            exit;
+        }
         // send off for authentication
         else if( !self::$_options['wpauth'] || isset( $_GET['mauth'] ) ) {
             $parts = parse_url( self::$_ssoURL );
@@ -378,8 +382,8 @@ class UMichMAuth
             exit;
         }
         else if( $password ) {
-            $user = is_a( $user, 'WP_User' ) ? $user : get_user_by( 'login', $username );
-            if( $user && get_user_meta( $user->ID, 'umich_mauth_login', true ) ) {
+            $tUser = is_a( $user, 'WP_User' ) ? $user : get_user_by( 'login', $username );
+            if( $tUser && get_user_meta( $tUser->ID, 'umich_mauth_login', true ) ) {
                 return new WP_Error( 'umich_mauth', 'Account is managed by U-M Weblogin. <a href="'. $ssoAuthURL .'">Login with U-M Weblogin</a>' );
             }
         }
