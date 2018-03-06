@@ -3,7 +3,7 @@
  * Plugin Name: University of Michigan: MAuth
  * Plugin URI: https://github.com/umdigital/umich-mauth/
  * Description: Alternate UMich website authentication method.
- * Version: 1.1
+ * Version: 1.2
  * Author: U-M: Digital
  * Author URI: http://vpcomm.umich.edu
  */
@@ -46,9 +46,9 @@ class UMichMAuth
                 // wether WP should check the validity of the SSL cert when getting an update, see https://github.com/jkudish/WordPress-GitHub-Plugin-Updater/issues/2 and https://github.com/jkudish/WordPress-GitHub-Plugin-Updater/issues/4 for details
                 'sslverify' => true,
                 // which version of WordPress does your plugin require?
-                'requires' => '3.0',
+                'requires' => '4.0',
                 // which version of WordPress is your plugin tested up to?
-                'tested' => '3.9.1',
+                'tested' => '4.9.4',
                 // which file to use as the readme for the version number
                 'readme' => 'README.md',
                 // Access private repositories by authorizing under Appearance > Github Updates when this example plugin is installed
@@ -78,6 +78,17 @@ class UMichMAuth
 
                 return $allow;
             }, 10, 2 );
+
+/**/
+            add_action( 'admin_init', function(){
+                if( preg_match( '#/user-new.php$#', $_SERVER['REQUEST_URI'] ) ) {
+                    wp_redirect(
+                        str_replace( 'user-new.php', 'users.php?page=um-mauth-add-user', $_SERVER['REQUEST_URI'] )
+                    );
+                    exit;
+                }
+            }, 1);
+/**/
         }
 
         // disable WP authentication
@@ -456,6 +467,11 @@ class UMichMAuth
                 include UMICHMAUTH_PATH .'templates'. DIRECTORY_SEPARATOR .'admin_'.( is_multisite() ? 'multisite' : 'singlesite').'.tpl';
             }
         );
+
+        // add custom add user page (no menu link)
+        if( self::$_options['mauth'] ) {
+            add_submenu_page( null, 'Add U-M User', 'Add User', 'read', 'um-mauth-add-user', array( __CLASS__, 'addUserPage' ) );
+        }
     }
 
     /**
@@ -493,6 +509,200 @@ class UMichMAuth
                 include UMICHMAUTH_PATH .'templates'. DIRECTORY_SEPARATOR .'admin_network.tpl';
             }
         );
+
+        // add custom add user page (no menu link)
+        if( self::$_options['mauth'] ) {
+            add_submenu_page( null, 'Add U-M User', 'Add User', 'read', 'um-mauth-add-user', array( __CLASS__, 'addUserPage' ) );
+        }
+    }
+
+    static public function addUserPage()
+    {
+        $default = array(
+            'uname'      => '',
+
+            'user_login' => '',
+            'email'      => '',
+            'first_name' => '',
+            'last_name'  => '',
+            'noconfirm'  => '',
+
+            'role'       => 'subscriber'
+        );
+
+        if( $_POST && isset( $_POST['umich_mauth_adduser_nonce'] ) && wp_verify_nonce( $_POST['umich_mauth_adduser_nonce'], 'umich-mauth' ) ) {
+            $uid             = false;
+            $default['role'] = $_POST['role'] ?: 'subscriber';
+
+            if( $_POST['createaction'] == 'um' ) {
+                $default['uname'] = $_POST['uname'];
+
+                if( empty( $_POST['uname'] ) ) { // username required
+                    add_settings_error(
+                        'umich_mauth_adduser_uname',
+                        'error',
+                        'ERROR: Uniqname is required.',
+                        'error'
+                    );
+                }
+                else {
+                    // check if users exists
+                    if( $user = get_user_by( 'login', $_POST['uname'] ) ) {
+                        // add user to blog if multisite
+                        if( is_multisite() && !is_network_admin() ) {
+                            $default['uname'] = '';
+
+                            add_user_to_blog(
+                                get_current_blog_id(),
+                                $user->ID,
+                                $_POST['role'] ?: 'subscriber'
+                            );
+
+                            add_settings_error(
+                                'umich_mauth_adduser',
+                                'success',
+                                'User ('. $_POST['uname'] .') added successfully',
+                                'updated'
+                            );
+                        }
+                        else {
+                            add_settings_error(
+                                'umich_mauth_adduser_uname',
+                                'error',
+                                'ERROR: User already exists.',
+                                'error'
+                            );
+                        }
+                    }
+                    // check if valid uniqname
+                    else {
+                        // get service URL
+                        $serviceURL = 'http'. (isset( $_SERVER['HTTPS'] ) ? 's' : '') .'://'. $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+
+                        // verify groups are valid
+                        $parts = parse_url( self::$_ssoURL );
+                        $parts['path'] = '/exists';
+
+                        parse_str( $parts['query'], $parts['query'] );
+                        $parts['query']['service'] = $serviceURL;
+                        $parts['query']['uname']   = $_POST['uname'];
+                        $parts['query'] = http_build_query( $parts['query'] );
+                        $parts['query'] = $parts['query'] ? '?'. $parts['query'] : '';
+
+                        $json = json_decode( file_get_contents(
+                            "{$parts['scheme']}://{$parts['host']}{$parts['path']}{$parts['query']}"
+                        ));
+
+                        // invalid username
+                        if( $json->status != 'success' ) {
+                            add_settings_error(
+                                'umich_mauth_adduser_uname',
+                                'error',
+                                'ERROR: Invalid Uniqname. Verify that it is correct and try again.',
+                                'error'
+                            );
+                        }
+                        // add user
+                        else {
+                            $uid = wp_insert_user(
+                                array(
+                                    'user_login' => $json->user->uname,
+                                    'user_pass'  => wp_generate_password(),
+                                    'user_email' => $json->user->email ?: $json->user->uname .'@umich.edu',
+                                    'first_name' => $json->user->first,
+                                    'last_name'  => $json->user->last,
+                                    'role'       => @$_POST['role'] ?: 'subscriber'
+                                )
+                            );
+
+                            if( $uid && !is_a( $uid, 'WP_Error' ) ) {
+                                $default['uname'] = '';
+
+                                update_user_meta( $uid, 'umich_mauth_login', true );
+                            }
+                        }
+                    }
+                }
+            }
+            else if( $_POST['createaction'] == 'local' ) {
+                $default['user_login'] = $_POST['user_login'];
+                $default['email']      = $_POST['email'];
+                $default['first_name'] = $_POST['first_name'];
+                $default['last_name']  = $_POST['last_name'];
+                $default['noconfirm']  = @$_POST['noconfirmation'] ?: '';
+
+                // check if user exists by username
+                if( $tUser = get_user_by( 'login', $_POST['user_login'] ) ) {
+                    $uid = $tUser->ID;
+                }
+                // check if user exists by email
+                else if( $tUser = get_user_by( 'email', $_POST['email'] ) ) {
+                    $uid = $tUser->ID;
+                }
+                // create account
+                else {
+                    // skip email to user
+                    if( !$_POST['noconfirmation'] ) {
+                        $_POST['send_user_notification'] = true;
+                    }
+
+                    $_POST['pass1'] = $_POST['pass2'] = wp_generate_password( 24 );
+
+                    // create user
+                    $uid = edit_user();
+                }
+
+                if( $uid && !is_a( $uid, 'WP_Error' ) ) {
+                    $default['user_login'] = '';
+                    $default['email']      = '';
+                    $default['first_name'] = '';
+                    $default['last_name']  = '';
+                    $default['noconfirm']  = '';
+                }
+            }
+
+            // set error if insert/update errored
+            if( is_a( $uid, 'WP_Error' ) ) {
+                add_settings_error(
+                    'umich_mauth_adduser',
+                    'error',
+                    $uid->get_error_message(),
+                    'error'
+                );
+            }
+            // insert/update succeeded
+            else if( $uid ) {
+                // add user to blog if multisite
+                if( !is_network_admin() ) {
+                    if( is_multisite() ) {
+                        add_user_to_blog(
+                            get_current_blog_id(),
+                            $uid,
+                            $_POST['role'] ?: 'subscriber'
+                        );
+                    }
+                    else {
+                        wp_update_user(array(
+                            'ID'   => $uid,
+                            'role' => $_POST['role'] ?: 'subscriber'
+                        ));
+                    }
+                }
+
+                add_settings_error(
+                    'umich_mauth_adduser',
+                    'success',
+                    'User ('. ($_POST['uname'] ?: $_POST['user_login']) .') added successfully',
+                    'updated'
+                );
+            }
+        }
+
+        include UMICHMAUTH_PATH .'templates'. DIRECTORY_SEPARATOR .'admin_adduser-um.tpl';
+
+        if( self::$_options['wpauth'] ) {
+            include UMICHMAUTH_PATH .'templates'. DIRECTORY_SEPARATOR .'admin_adduser-local.tpl';
+        }
     }
 
     /**
@@ -572,7 +782,7 @@ class UMichMAuth
                 add_settings_error(
                     'umich_mauth_groups_'. $key,
                     'error',
-                    'Missing role for group. Group has been deactivated.',
+                    'ERROR: Missing role for group. Group has been deactivated.',
                     'error'
                 );
 
@@ -609,7 +819,7 @@ class UMichMAuth
             add_settings_error(
                 'umich_mauth_groups',
                 'error',
-                'Unable to verify groups. Deactivating all groups.',
+                'ERROR: Unable to verify groups. Deactivating all groups.',
                 'error'
             );
 
@@ -627,7 +837,7 @@ class UMichMAuth
                     add_settings_error(
                         'umich_mauth_groups_'. md5( $group ),
                         'error',
-                        'The group "'. $group .'" is private and cannot be used.',
+                        'ERROR: The group "'. $group .'" is private and cannot be used.',
                         'error'
                     );
                     $newGroups[ $group ]['active'] = 0;
@@ -638,7 +848,7 @@ class UMichMAuth
                     add_settings_error(
                         'umich_mauth_groups_'. md5( $group ),
                         'error',
-                        'Unable to verify the group "'. $group .'"',
+                        'ERROR: Unable to verify the group "'. $group .'"',
                         'error'
                     );
                     $newGroups[ $group ]['active'] = 0;
