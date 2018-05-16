@@ -3,7 +3,7 @@
  * Plugin Name: University of Michigan: MAuth
  * Plugin URI: https://github.com/umdigital/umich-mauth/
  * Description: Alternate UMich website authentication method.
- * Version: 1.2
+ * Version: 1.2.1
  * Author: U-M: Digital
  * Author URI: http://vpcomm.umich.edu
  */
@@ -79,7 +79,6 @@ class UMichMAuth
                 return $allow;
             }, 10, 2 );
 
-/**/
             add_action( 'admin_init', function(){
                 if( preg_match( '#/user-new.php$#', $_SERVER['REQUEST_URI'] ) ) {
                     wp_redirect(
@@ -88,7 +87,6 @@ class UMichMAuth
                     exit;
                 }
             }, 1);
-/**/
         }
 
         // disable WP authentication
@@ -100,6 +98,7 @@ class UMichMAuth
             add_action( 'login_header', function(){
                 $ssoAuthURL = 'http'. (isset( $_SERVER['HTTPS'] ) ? 's' : '') .'://'. $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
                 $parts = parse_url( $ssoAuthURL );
+                $parts['query'] = isset( $parts['query'] ) ? $parts['query'] : '';
                 parse_str( $parts['query'], $parts['query'] );
                 unset( $parts['query']['mauth-token'] );
                 unset( $parts['query']['loggedout'] );
@@ -139,6 +138,7 @@ class UMichMAuth
         // get service URL
         $serviceURL = 'http'. (isset( $_SERVER['HTTPS'] ) ? 's' : '') .'://'. $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
         $parts = parse_url( $serviceURL );
+        $parts['query'] = isset( $parts['query'] ) ? $parts['query'] : '';
         parse_str( $parts['query'], $parts['query'] );
         unset( $parts['query']['mauth-token'] );
         unset( $parts['query']['loggedout'] );
@@ -203,6 +203,7 @@ class UMichMAuth
             $parts = parse_url( self::$_ssoURL );
             $parts['path'] = '/verify';
 
+            $parts['query'] = isset( $parts['query'] ) ? $parts['query'] : '';
             parse_str( $parts['query'], $parts['query'] );
             $parts['query']['service'] = $serviceURL;
             $parts['query']['token']   = $_GET['mauth-token'];
@@ -384,6 +385,7 @@ class UMichMAuth
         else if( !self::$_options['wpauth'] || isset( $_GET['mauth'] ) ) {
             $parts = parse_url( self::$_ssoURL );
 
+            $parts['query'] = isset( $parts['query'] ) ? $parts['query'] : '';
             parse_str( $parts['query'], $parts['query'] );
             $parts['query']['service'] = $serviceURL;
             $parts['query'] = http_build_query( $parts['query'] );
@@ -583,6 +585,7 @@ class UMichMAuth
                         $parts = parse_url( self::$_ssoURL );
                         $parts['path'] = '/exists';
 
+                        $parts['query'] = isset( $parts['query'] ) ? $parts['query'] : '';
                         parse_str( $parts['query'], $parts['query'] );
                         $parts['query']['service'] = $serviceURL;
                         $parts['query']['uname']   = $_POST['uname'];
@@ -805,6 +808,7 @@ class UMichMAuth
         $parts = parse_url( self::$_ssoURL );
         $parts['path'] = '/verify';
 
+        $parts['query'] = isset( $parts['query'] ) ? $parts['query'] : '';
         parse_str( $parts['query'], $parts['query'] );
         $parts['query']['service'] = $serviceURL;
         $parts['query']['groups']  = implode( ',', array_map( 'urlencode', array_keys( $newGroups ) ) );
