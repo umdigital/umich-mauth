@@ -3,7 +3,7 @@
  * Plugin Name: University of Michigan: MAuth
  * Plugin URI: https://github.com/umdigital/umich-mauth/
  * Description: Alternate UMich website authentication method.
- * Version: 1.2.1
+ * Version: 1.2.2
  * Author: U-M: Digital
  * Author URI: http://vpcomm.umich.edu
  */
@@ -244,6 +244,11 @@ class UMichMAuth
             if( !$user || is_wp_error( $user ) ) { // no account
                 // autocreate account
                 if( $autoCreate ) {
+                    // fix for guest/friend accout usage.  No email but username is the email
+                    if( !$json->user->email && filter_var( $json->user->uname, FILTER_VALIDATE_EMAIL ) ) {
+                        $json->user->email = $json->user->uname;
+                    }
+
                     $uid = wp_insert_user(
                         array(
                             'user_login' => $json->user->uname,
@@ -607,6 +612,11 @@ class UMichMAuth
                         }
                         // add user
                         else {
+                            // fix for guest/friend accout usage.  No email but username is the email
+                            if( !$json->user->email && filter_var( $json->user->uname, FILTER_VALIDATE_EMAIL ) ) {
+                                $json->user->email = $json->user->uname;
+                            }
+
                             $uid = wp_insert_user(
                                 array(
                                     'user_login' => $json->user->uname,
