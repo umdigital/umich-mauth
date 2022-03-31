@@ -8,9 +8,9 @@
         <th>Wordpress Role</th>
         <th>Auto-Create User</th>
     </tr>
-    <? $rows = count( $mauthGroups ) + 1; ?>
-    <? for( $i = 0; $i < $rows; $i++ ): ?>
-    <? $group = array_merge(
+    <?php $rows = count( $mauthGroups ) + 1; ?>
+    <?php for( $i = 0; $i < $rows; $i++ ): ?>
+    <?php $group = array_merge(
         array(
             'active'     => 0,
             'group'      => null,
@@ -29,9 +29,9 @@
         </td>
         <td>
             <select name="umich_mauth_groups[<?=$i;?>][role]">
-                <? foreach( $roles as $key => $role ): ?>
+                <?php foreach( $roles as $key => $role ): ?>
                 <option value="<?=$key;?>"<?=($group['role'] == $key ? ' selected="selected"' : null);?>><?=$role;?></option>
-                <? endforeach;?>
+                <?php endforeach;?>
             </select>
         </td>
         <td>
@@ -42,6 +42,6 @@
             <label for="umich_mauth--autocreate-2">No</label>
         </td>
     </tr>
-    <? endfor; ?>
+    <?php endfor; ?>
 </table>
 <p><em>To delete a row just delete the group name text for that row.</em></p>

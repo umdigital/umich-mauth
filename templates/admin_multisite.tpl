@@ -1,10 +1,10 @@
 <div class="wrap">
     <h2>U-M: M-Authentication</h2>
     <form method="post" action="options-general.php?page=<?=$_GET['page'];?>">
-        <? wp_nonce_field( 'umich-mauth', 'umich_mauth_nonce' ); ?>
+        <?php wp_nonce_field( 'umich-mauth', 'umich_mauth_nonce' ); ?>
 
-        <? include __DIR__ . DIRECTORY_SEPARATOR .'admin-groups.tpl'; ?>
+        <?php include __DIR__ . DIRECTORY_SEPARATOR .'admin-groups.tpl'; ?>
 
-        <? submit_button(); ?>
+        <?php submit_button(); ?>
     </form>
 </div>

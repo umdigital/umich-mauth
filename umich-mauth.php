@@ -3,7 +3,7 @@
  * Plugin Name: University of Michigan: MAuth
  * Plugin URI: https://github.com/umdigital/umich-mauth/
  * Description: Alternate UMich website authentication method.
- * Version: 1.2.2
+ * Version: 1.2.3
  * Author: U-M: Digital
  * Author URI: http://vpcomm.umich.edu
  */

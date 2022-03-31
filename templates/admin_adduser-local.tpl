@@ -1,7 +1,7 @@
 <div class="wrap">
     <h2>Add Local User</h2>
     <form method="post" action="">
-        <? wp_nonce_field( 'umich-mauth', 'umich_mauth_adduser_nonce' ); ?>
+        <?php wp_nonce_field( 'umich-mauth', 'umich_mauth_adduser_nonce' ); ?>
         <input type="hidden" name="createaction" value="local" />
 
         <table class="form-table">
@@ -21,19 +21,19 @@
                 <th scope="row"><label for="last_name">Last Name</label></th>
                 <td><input type="text" id="last_name" name="last_name" value="<?=$default['last_name'];?>" placeholder="Enter users last name" class="regular-text" /></td>
             </tr>
-            <? if( !is_network_admin() ): ?>
+            <?php if( !is_network_admin() ): ?>
             <tr valign="top">
                 <th scope="row"><label for="role">Role</label></th>
                 <td>
                     <select id="role" name="role">
-                        <? global $wp_roles; ?>
-                        <? foreach( $wp_roles->role_names as $role => $name ): ?>
+                        <?php global $wp_roles; ?>
+                        <?php foreach( $wp_roles->role_names as $role => $name ): ?>
                         <option value="<?=$role;?>"<?=( $role == $default['role'] ? ' selected="selected"' : null);?>><?=$name;?></option>
-                        <? endforeach; ?>
+                        <?php endforeach; ?>
                     </select>
                 </td>
             </tr>
-            <? endif; ?>
+            <?php endif; ?>
             <tr valign="top">
                 <th scope="row">Skip Confirmation Email</th>
                 <td>
@@ -43,6 +43,6 @@
             </tr>
         </table>
 
-        <? submit_button( 'Add User' ); ?>
+        <?php submit_button( 'Add User' ); ?>
     </form>
 </div>
