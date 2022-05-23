@@ -3,7 +3,7 @@
  * Plugin Name: University of Michigan: MAuth
  * Plugin URI: https://github.com/umdigital/umich-mauth/
  * Description: Alternate UMich website authentication method.
- * Version: 1.2.3
+ * Version: 1.2.4
  * Author: U-M: Digital
  * Author URI: http://vpcomm.umich.edu
  */
@@ -328,13 +328,15 @@ class UMichMAuth
                     $autoAdd  = false;
                     foreach( $wpRoles->get_names() as $wpRoleKey => $wpRoleName ) {
                         foreach( $siteGroups as $group ) {
-                            if( $group['role'] == $wpRoleKey ) {
-                                if( $group['autocreate'] ) {
-                                    $autoAdd = true;
-                                }
+                            if( in_array( $group['group'], $json->user->groups ) ) {
+                                if( $group['role'] == $wpRoleKey ) {
+                                    if( $group['autocreate'] ) {
+                                        $autoAdd = true;
+                                    }
 
-                                if( !$autoRole || (count( $wpRoles->get_role( $wpRoleKey )->capabilities ) > count( $wpRoles->get_role( $autoRole )->capabilities )) ) {
-                                    $autoRole = $group['role'];
+                                    if( !$autoRole || (count( $wpRoles->get_role( $wpRoleKey )->capabilities ) > count( $wpRoles->get_role( $autoRole )->capabilities )) ) {
+                                        $autoRole = $group['role'];
+                                    }
                                 }
                             }
                         }
