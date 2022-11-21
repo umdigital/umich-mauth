@@ -3,7 +3,7 @@
  * Plugin Name: University of Michigan: MAuth
  * Plugin URI: https://github.com/umdigital/umich-mauth/
  * Description: Alternate UMich website authentication method.
- * Version: 1.2.4
+ * Version: 1.2.5
  * Author: U-M: Digital
  * Author URI: http://vpcomm.umich.edu
  */
@@ -223,7 +223,7 @@ class UMichMAuth
             }
 
             // make sure necessary params exist
-            if( !$json->user->groups ) {
+            if( !@$json->user->groups ) {
                 $json->user->groups = array();
             }
 
